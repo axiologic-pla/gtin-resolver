@@ -4,7 +4,8 @@ Link to the XSD: [PharmaLedger ePI XSD](./pharmaleger-leaflet-v1.xsd)
 
 ## Sections
 
-Due to the design how the ePI leaflet is shown on the app, only section headers and their content are considered for display
+Due to the design how the ePI leaflet is shown on the app, only section headers and their content are considered for
+display
 e.g.
 
 ```   
@@ -16,12 +17,13 @@ e.g.
 </section>
 ```
 
-All other information can be part of the XML e.g. product name, Ingredient Substance 
-but those information are not part of the display on the app. 
+All other information can be part of the XML e.g. product name, Ingredient Substance
+but those information are not part of the display on the app.
 
 ## Hide Elements
 
-If your XML contains information which shouldn’t be displayed on the leaflet, please add one or multiple of those class attributes:
+If your XML contains information which shouldn’t be displayed on the leaflet, please add one or multiple of those class
+attributes:
 
 - `class="Type"`
 - `class="Product_Name"`
@@ -48,7 +50,8 @@ or
 
 ## Search Support
 
-If you like to enable the users to search on the text of your pictures, please include the text as part of the `figure` tag:
+If you like to enable the users to search on the text of your pictures, please include the text as part of the `figure`
+tag:
 
 e.g.
 

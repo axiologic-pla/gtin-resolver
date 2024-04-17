@@ -21,7 +21,7 @@ function generateGTIN() {
     return gtinDigits.join('');
 }
 
-const message ={
+const message = {
     "messageType": "Product",
     "messageTypeVersion": 1,
     "senderId": "devuser",

@@ -1,3 +1,7 @@
 {
-  "ignore": ["apihubQueueBufferingChild.js", "utils.js", "apihubQueueBufferingTest.js"]
+  "ignore": [
+    "apihubQueueBufferingChild.js",
+    "utils.js",
+    "apihubQueueBufferingTest.js"
+  ]
 }

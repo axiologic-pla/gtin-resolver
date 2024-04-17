@@ -7,8 +7,9 @@ const EpiSORIntegrationClient = require("../../lib/integrationAPIs/clients/EpiSO
 const tir = require("../../../opendsu-sdk/psknode/tests/util/tir");
 const path = require("path");
 const fs = require("fs");
-const NO_PRODUCTS_OR_BATCHES = 5   ;
+const NO_PRODUCTS_OR_BATCHES = 5;
 const NO_LEAFLETS = 5;
+
 // Function to measure execution time
 async function measureApiPerformance(apiFunction, repetitions = NO_PRODUCTS_OR_BATCHES) {
     const start = Date.now();
@@ -149,7 +150,7 @@ assert.callback("EPISORClient Write API Performance Tests", async (callback) => 
                 "clientId": "5daf11d0-dc28-4d09-b8c7-2eec6f16eb78",
                 "scope": "email user.read offline_access openid api://5daf11d0-dc28-4d09-b8c7-2eec6f16eb78/access_as_user",
                 "redirectPath": "http://localhost:8080/?root=true",
-                "clientSecret": "",
+                "clientSecret": "3QA8Q~IXBkF2MUZcfmWWcDlhneLzlp3XI75c1bNT",
                 "logoutUrl": "https://login.microsoftonline.com/d69968dd-8f36-47eb-b724-7f5e6e660066/oauth2/logout",
                 "postLogoutRedirectUrl": "http://localhost:8080/?logout=true"
             },
@@ -160,7 +161,7 @@ assert.callback("EPISORClient Write API Performance Tests", async (callback) => 
         "serverAuthentication": true
     }
 
-    process.env.SSO_SECRETS_ENCRYPTION_KEY = "";
+    process.env.SSO_SECRETS_ENCRYPTION_KEY = "+WG9HhIoXGGSVq6cMlhy2P3vuiqz1O/WAaiF5JhXmnc=";
     process.env.EPI_DOMAIN = domain;
     process.env.EPI_SUBDOMAIN = subdomain;
     process.env.PSK_CONFIG_LOCATION = require("path").join(folder, "external-volume/config");
@@ -186,7 +187,7 @@ assert.callback("EPISORClient Write API Performance Tests", async (callback) => 
 
     const tokenEndpoint = "https://login.microsoftonline.com/d69968dd-8f36-47eb-b724-7f5e6e660066/oauth2/v2.0/token";
     const clientId = "5daf11d0-dc28-4d09-b8c7-2eec6f16eb78";
-    const clientSecret = "";
+    const clientSecret = "3QA8Q~IXBkF2MUZcfmWWcDlhneLzlp3XI75c1bNT";
     const scope = "api://5daf11d0-dc28-4d09-b8c7-2eec6f16eb78/.default";
     const getAccessToken = async () => {
         const params = new URLSearchParams();
@@ -333,7 +334,7 @@ assert.callback("EPISORClient Write API Performance Tests", async (callback) => 
         });
     }
 
-const updateBatchExecutionTime = [];
+    const updateBatchExecutionTime = [];
     const updateBatch = async () => {
         const sleepTime = Math.floor(Math.random() * (10000 - 1000 + 1)) + 1000;
         // await sleep(sleepTime);

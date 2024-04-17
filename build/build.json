@@ -1,3 +1,6 @@
 {
-  "gtinResolver":{"deps":"gtin-resolver","autoLoad":true}
+  "gtinResolver": {
+    "deps": "gtin-resolver",
+    "autoLoad": true
+  }
 }

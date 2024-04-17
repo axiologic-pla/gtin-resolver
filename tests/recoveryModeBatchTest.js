@@ -117,24 +117,24 @@ function getBrickFilePath(folder, hashLink) {
 }
 
 function buildTestFunction(gtinSSI, initialMessage, updateMessage) {
-    function deleteMutableDSUBrickMap(gtinSSI, folder, callback){
+    function deleteMutableDSUBrickMap(gtinSSI, folder, callback) {
         const openDSU = require("opendsu");
         const resolver = openDSU.loadApi("resolver");
 
-        resolver.loadDSU(gtinSSI, (err, dsu)=>{
-            if(err){
+        resolver.loadDSU(gtinSSI, (err, dsu) => {
+            if (err) {
                 return callback(err);
             }
 
-            dsu.listMountedDSUs("/", (err, mounts)=>{
-                if(err){
+            dsu.listMountedDSUs("/", (err, mounts) => {
+                if (err) {
                     return callback(err);
                 }
                 let target = mounts[0].identifier;
                 target = openDSU.loadApi("keyssi").parse(target);
 
-                target.getAnchorId((err, anchorId)=>{
-                    if(err){
+                target.getAnchorId((err, anchorId) => {
+                    if (err) {
                         return callback(err);
                     }
 

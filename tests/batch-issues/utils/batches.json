@@ -1,32 +1,32 @@
 [
-    {
-        "messageType": "Batch",
-        "messageTypeVersion": 1,
-        "senderId": "devuserAndi",
-        "receiverId": "",
-        "messageId": "6313993288176",
-        "messageDateTime": "2023-02-21T17:14:01.505Z",
-        "token": "",
-        "batch": {
-            "productCode": "11111000011111",
-            "batch": "Batc1111x",
-            "expiryDate": "230217",
-            "snValid": [],
-            "snRecalled": [],
-            "snDecom": [],
-            "flagEnableBatchRecallMessage": false,
-            "flagEnableSNVerification": false,
-            "flagEnableEXPVerification": false,
-            "flagEnableExpiredEXPCheck": true,
-            "recallMessage": "",
-            "batchMessage": "",
-            "packagingSiteName": "",
-            "flagEnableACFBatchCheck": false,
-            "acdcAuthFeatureSSI": "",
-            "acfBatchCheckURL": false,
-            "snValidReset": false,
-            "snRecalledReset": false,
-            "snDecomReset": false
-        }
+  {
+    "messageType": "Batch",
+    "messageTypeVersion": 1,
+    "senderId": "devuserAndi",
+    "receiverId": "",
+    "messageId": "6313993288176",
+    "messageDateTime": "2023-02-21T17:14:01.505Z",
+    "token": "",
+    "batch": {
+      "productCode": "11111000011111",
+      "batch": "Batc1111x",
+      "expiryDate": "230217",
+      "snValid": [],
+      "snRecalled": [],
+      "snDecom": [],
+      "flagEnableBatchRecallMessage": false,
+      "flagEnableSNVerification": false,
+      "flagEnableEXPVerification": false,
+      "flagEnableExpiredEXPCheck": true,
+      "recallMessage": "",
+      "batchMessage": "",
+      "packagingSiteName": "",
+      "flagEnableACFBatchCheck": false,
+      "acdcAuthFeatureSSI": "",
+      "acfBatchCheckURL": false,
+      "snValidReset": false,
+      "snRecalledReset": false,
+      "snDecomReset": false
     }
+  }
 ]

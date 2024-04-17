@@ -18,288 +18,288 @@ const config = opendsu.loadAPI("config");
 
 assert.callback("ApiHub test message types and responses", async (finishTest) => {
 
-  try {
-    const endpoint = await utils.launchEndpoint();
-    let mainNode = await utils.launchMainServer([
-      {name: "endpoint", url: endpoint.url}
-    ]);
+    try {
+        const endpoint = await utils.launchEndpoint();
+        let mainNode = await utils.launchMainServer([
+            {name: "endpoint", url: endpoint.url}
+        ]);
 
-    let {enclaveDB, subjectSSI} = await utils.prepareWallet();
+        let {enclaveDB, subjectSSI} = await utils.prepareWallet();
 
-    let messagesVerificationMap = {};
-    let epiProtocolVersion = await $$.promisify(config.getEnv)("epiProtocolVersion");
-    let testMessages = prepareTestMessages(messagesVerificationMap, epiProtocolVersion);
+        let messagesVerificationMap = {};
+        let epiProtocolVersion = await $$.promisify(config.getEnv)("epiProtocolVersion");
+        let testMessages = prepareTestMessages(messagesVerificationMap, epiProtocolVersion);
 
-    await $$.promisify(doPut)(`${mainNode.url}/mappingEngine/${domain}/default`, JSON.stringify(testMessages), {headers: {token: subjectSSI.getIdentifier()}});
+        await $$.promisify(doPut)(`${mainNode.url}/mappingEngine/${domain}/default`, JSON.stringify(testMessages), {headers: {token: subjectSSI.getIdentifier()}});
 
-    let result = [];
-    const awaitTimeout = delay => new Promise(resolve => setTimeout(resolve, delay));
+        let result = [];
+        const awaitTimeout = delay => new Promise(resolve => setTimeout(resolve, delay));
 
-    do {
-      await awaitTimeout(6 * 1000);
-      let response = await http.fetch(`${mainNode.url}/mappingEngine/${domain}/logs`);
-      try {
-        result = await response.json();
+        do {
+            await awaitTimeout(6 * 1000);
+            let response = await http.fetch(`${mainNode.url}/mappingEngine/${domain}/logs`);
+            try {
+                result = await response.json();
 
-        let j = result.length - 1;
-        for (let i = 0; i < result.length; i++) {
-          let resultMessage = result[j];
-          assert.equal(resultMessage.requestMessageId, testMessages[i].messageId);
-          // assert.true(resultMessage.response.length >= 1);
-          if (typeof messagesVerificationMap[testMessages[i].messageId] === "function") {
-            await messagesVerificationMap[testMessages[i].messageId](resultMessage, testMessages[i], enclaveDB);
-          }
-          j--;
-        }
-      } catch (err) {
-        console.log("There are more results to parse, checking again ...");
-      }
+                let j = result.length - 1;
+                for (let i = 0; i < result.length; i++) {
+                    let resultMessage = result[j];
+                    assert.equal(resultMessage.requestMessageId, testMessages[i].messageId);
+                    // assert.true(resultMessage.response.length >= 1);
+                    if (typeof messagesVerificationMap[testMessages[i].messageId] === "function") {
+                        await messagesVerificationMap[testMessages[i].messageId](resultMessage, testMessages[i], enclaveDB);
+                    }
+                    j--;
+                }
+            } catch (err) {
+                console.log("There are more results to parse, checking again ...");
+            }
 
-    } while (result.length < testMessages.length)
+        } while (result.length < testMessages.length)
 
-  } catch (e) {
-    console.error("Error on put message ", e);
-  } finally {
-    finishTest();
-  }
+    } catch (e) {
+        console.error("Error on put message ", e);
+    } finally {
+        finishTest();
+    }
 }, 5 * 60 * 1000);
 
 
 function getMockMessage(messageType) {
-  return messages.find(item => item.messageType === messageType);
+    return messages.find(item => item.messageType === messageType);
 }
 
 async function undigestedMessageVerification(resultMessage, responseType, responseTypeValue, tableName, recordPk, enclaveDB) {
-  assert.equal(resultMessage.response[0].responseType, responseTypeValue);
-  assert.equal(resultMessage.messageType, responseType);
-  let dbResult = null;
-  try {
-    dbResult = await $$.promisify(enclaveDB.getRecord)(tableName, recordPk);
-  } catch (e) {
-  }
-  assert.true(dbResult === null);
+    assert.equal(resultMessage.response[0].responseType, responseTypeValue);
+    assert.equal(resultMessage.messageType, responseType);
+    let dbResult = null;
+    try {
+        dbResult = await $$.promisify(enclaveDB.getRecord)(tableName, recordPk);
+    } catch (e) {
+    }
+    assert.true(dbResult === null);
 }
 
 function prepareTestMessages(messagesVerificationMap, epiProtocolVersion) {
-  /*create messages for product*/
+    /*create messages for product*/
 
-  let prodMsg = getMockMessage("Product");
-  prodMsg["epiProtocolVersion"] = epiProtocolVersion;
-  let prodGoodMsg = utils.setEndpointMessages("endpoint", 1, prodMsg)[0];
-  let prodWrongMsgType = utils.setEndpointMessages("endpoint", 1, prodMsg)[0];
-  prodWrongMsgType.messageType = "Product Wrong message type";
-  let prodWrongFieldType = utils.setEndpointMessages("endpoint", 1, prodMsg)[0];
-  prodWrongFieldType.product.flagEnableAdverseEventReporting = "Wrong value";
-  let prodMissingField = utils.setEndpointMessages("endpoint", 1, prodMsg)[0];
-  delete prodMissingField.product.inventedName;
+    let prodMsg = getMockMessage("Product");
+    prodMsg["epiProtocolVersion"] = epiProtocolVersion;
+    let prodGoodMsg = utils.setEndpointMessages("endpoint", 1, prodMsg)[0];
+    let prodWrongMsgType = utils.setEndpointMessages("endpoint", 1, prodMsg)[0];
+    prodWrongMsgType.messageType = "Product Wrong message type";
+    let prodWrongFieldType = utils.setEndpointMessages("endpoint", 1, prodMsg)[0];
+    prodWrongFieldType.product.flagEnableAdverseEventReporting = "Wrong value";
+    let prodMissingField = utils.setEndpointMessages("endpoint", 1, prodMsg)[0];
+    delete prodMissingField.product.inventedName;
 
-  messagesVerificationMap[prodGoodMsg.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
-    let dbResult = null;
-    let dsuJson = null;
-    let compareMessage;
-    assert.equal(resultMessage.response[0].responseType, 100);
-    assert.equal(resultMessage.messageType, "ProductResponse");
-    dbResult = await $$.promisify(enclaveDB.getRecord)(constants.PRODUCTS_TABLE, testMessageObj.product.productCode);
-    assert.true(dbResult !== null);
-    let modelMsgService = new ModelMessageService("product");
-    compareMessage = modelMsgService.getMessageFromModel(dbResult);
-    assert.true(compareMessage !== null);
-    Object.keys(compareMessage).forEach(key => {
-      if (typeof compareMessage[key] === "object") {
-        assert.equal(JSON.stringify(compareMessage[key]), JSON.stringify(testMessageObj.product[key]));
-      } else {
-        assert.equal(compareMessage[key], testMessageObj.product[key]);
-      }
-    })
-    let productDSU = await $$.promisify(resolver.loadDSU)(dbResult.keySSI);
-    assert.true(productDSU !== null);
-    // await $$.promisify(productDSU.load)();
+    messagesVerificationMap[prodGoodMsg.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
+        let dbResult = null;
+        let dsuJson = null;
+        let compareMessage;
+        assert.equal(resultMessage.response[0].responseType, 100);
+        assert.equal(resultMessage.messageType, "ProductResponse");
+        dbResult = await $$.promisify(enclaveDB.getRecord)(constants.PRODUCTS_TABLE, testMessageObj.product.productCode);
+        assert.true(dbResult !== null);
+        let modelMsgService = new ModelMessageService("product");
+        compareMessage = modelMsgService.getMessageFromModel(dbResult);
+        assert.true(compareMessage !== null);
+        Object.keys(compareMessage).forEach(key => {
+            if (typeof compareMessage[key] === "object") {
+                assert.equal(JSON.stringify(compareMessage[key]), JSON.stringify(testMessageObj.product[key]));
+            } else {
+                assert.equal(compareMessage[key], testMessageObj.product[key]);
+            }
+        })
+        let productDSU = await $$.promisify(resolver.loadDSU)(dbResult.keySSI);
+        assert.true(productDSU !== null);
+        // await $$.promisify(productDSU.load)();
 
 
-    dsuJson = JSON.parse(await $$.promisify(productDSU.readFile)(`product.epi_v${epiProtocolVersion}`));
-    assert.true(dsuJson !== null);
-    compareMessage = modelMsgService.getMessageFromModel(dsuJson);
-    assert.true(compareMessage !== null);
-    Object.keys(compareMessage).forEach(key => {
-      if (typeof compareMessage[key] === "object") {
-        assert.equal(JSON.stringify(compareMessage[key]), JSON.stringify(testMessageObj.product[key]));
-      } else {
-        assert.equal(compareMessage[key], testMessageObj.product[key]);
-      }
-    })
+        dsuJson = JSON.parse(await $$.promisify(productDSU.readFile)(`product.epi_v${epiProtocolVersion}`));
+        assert.true(dsuJson !== null);
+        compareMessage = modelMsgService.getMessageFromModel(dsuJson);
+        assert.true(compareMessage !== null);
+        Object.keys(compareMessage).forEach(key => {
+            if (typeof compareMessage[key] === "object") {
+                assert.equal(JSON.stringify(compareMessage[key]), JSON.stringify(testMessageObj.product[key]));
+            } else {
+                assert.equal(compareMessage[key], testMessageObj.product[key]);
+            }
+        })
 
-  }
-  messagesVerificationMap[prodWrongMsgType.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
-    undigestedMessageVerification(resultMessage, "UnknownTypeResponse", 5, constants.PRODUCTS_TABLE, testMessageObj.product.productCode, enclaveDB);
-  }
-  messagesVerificationMap[prodWrongFieldType.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
-    undigestedMessageVerification(resultMessage, "ProductResponse", 1, constants.PRODUCTS_TABLE, testMessageObj.product.productCode, enclaveDB);
-  }
-  messagesVerificationMap[prodMissingField.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
-    undigestedMessageVerification(resultMessage, "ProductResponse", 1, constants.PRODUCTS_TABLE, testMessageObj.product.productCode, enclaveDB);
-  }
+    }
+    messagesVerificationMap[prodWrongMsgType.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
+        undigestedMessageVerification(resultMessage, "UnknownTypeResponse", 5, constants.PRODUCTS_TABLE, testMessageObj.product.productCode, enclaveDB);
+    }
+    messagesVerificationMap[prodWrongFieldType.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
+        undigestedMessageVerification(resultMessage, "ProductResponse", 1, constants.PRODUCTS_TABLE, testMessageObj.product.productCode, enclaveDB);
+    }
+    messagesVerificationMap[prodMissingField.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
+        undigestedMessageVerification(resultMessage, "ProductResponse", 1, constants.PRODUCTS_TABLE, testMessageObj.product.productCode, enclaveDB);
+    }
 
-  let productMessages = [prodGoodMsg, prodWrongMsgType, prodWrongFieldType, prodMissingField];
+    let productMessages = [prodGoodMsg, prodWrongMsgType, prodWrongFieldType, prodMissingField];
 
-  /*create messages for batch*/
+    /*create messages for batch*/
 
-  let batchMsg = getMockMessage("Batch");
-  batchMsg["epiProtocolVersion"] = epiProtocolVersion;
-  let batchGoodMsg = utils.setEndpointMessages("endpoint", 1, batchMsg)[0];
-  batchGoodMsg.batch.productCode = prodGoodMsg.product.productCode;
-  let batchWrongMsgType = utils.setEndpointMessages("endpoint", 1, batchMsg)[0];
-  batchWrongMsgType.messageType = "Batch Wrong message type";
-  let batchWrongFieldType = utils.setEndpointMessages("endpoint", 1, batchMsg)[0];
-  batchWrongFieldType.batch.flagEnableEXPVerification = "Wrong value";
-  let batchWrongProductCode = utils.setEndpointMessages("endpoint", 1, batchMsg)[0];
-  batchWrongProductCode.batch.productCode = "Wrong product code";
-  let batchMissingField = utils.setEndpointMessages("endpoint", 1, batchMsg)[0];
-  delete batchMissingField.batch.expiryDate;
+    let batchMsg = getMockMessage("Batch");
+    batchMsg["epiProtocolVersion"] = epiProtocolVersion;
+    let batchGoodMsg = utils.setEndpointMessages("endpoint", 1, batchMsg)[0];
+    batchGoodMsg.batch.productCode = prodGoodMsg.product.productCode;
+    let batchWrongMsgType = utils.setEndpointMessages("endpoint", 1, batchMsg)[0];
+    batchWrongMsgType.messageType = "Batch Wrong message type";
+    let batchWrongFieldType = utils.setEndpointMessages("endpoint", 1, batchMsg)[0];
+    batchWrongFieldType.batch.flagEnableEXPVerification = "Wrong value";
+    let batchWrongProductCode = utils.setEndpointMessages("endpoint", 1, batchMsg)[0];
+    batchWrongProductCode.batch.productCode = "Wrong product code";
+    let batchMissingField = utils.setEndpointMessages("endpoint", 1, batchMsg)[0];
+    delete batchMissingField.batch.expiryDate;
 
-  messagesVerificationMap[batchGoodMsg.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
-    let dbResult = null;
-    let dsuJson = null;
-    let compareMessage;
-    assert.equal(resultMessage.response[0].responseType, 100);
-    assert.equal(resultMessage.messageType, "BatchResponse");
-    dbResult = await $$.promisify(enclaveDB.getRecord)(constants.BATCHES_STORAGE_TABLE, gtinResolverUtils.getBatchMetadataPK(testMessageObj.batch.productCode, testMessageObj.batch.batch));
-    assert.true(dbResult !== null);
-    let modelMsgService = new ModelMessageService("batch");
-    compareMessage = modelMsgService.getMessageFromModel(dbResult);
-    assert.true(compareMessage !== null);
-    Object.keys(compareMessage).forEach(key => {
-      if (typeof compareMessage[key] === "object") {
-        assert.equal(JSON.stringify(compareMessage[key]), JSON.stringify(testMessageObj.batch[key]));
-      } else {
-        assert.equal(compareMessage[key], testMessageObj.batch[key]);
-      }
-    })
-    let batchDSU = await $$.promisify(resolver.loadDSU)(dbResult.keySSI);
-    assert.true(batchDSU !== null);
-    dsuJson = JSON.parse(await $$.promisify(batchDSU.readFile)(`batch.epi_v${epiProtocolVersion}`));
-    assert.true(dsuJson !== null);
-    compareMessage = modelMsgService.getMessageFromModel(dsuJson);
-    assert.true(compareMessage !== null);
+    messagesVerificationMap[batchGoodMsg.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
+        let dbResult = null;
+        let dsuJson = null;
+        let compareMessage;
+        assert.equal(resultMessage.response[0].responseType, 100);
+        assert.equal(resultMessage.messageType, "BatchResponse");
+        dbResult = await $$.promisify(enclaveDB.getRecord)(constants.BATCHES_STORAGE_TABLE, gtinResolverUtils.getBatchMetadataPK(testMessageObj.batch.productCode, testMessageObj.batch.batch));
+        assert.true(dbResult !== null);
+        let modelMsgService = new ModelMessageService("batch");
+        compareMessage = modelMsgService.getMessageFromModel(dbResult);
+        assert.true(compareMessage !== null);
+        Object.keys(compareMessage).forEach(key => {
+            if (typeof compareMessage[key] === "object") {
+                assert.equal(JSON.stringify(compareMessage[key]), JSON.stringify(testMessageObj.batch[key]));
+            } else {
+                assert.equal(compareMessage[key], testMessageObj.batch[key]);
+            }
+        })
+        let batchDSU = await $$.promisify(resolver.loadDSU)(dbResult.keySSI);
+        assert.true(batchDSU !== null);
+        dsuJson = JSON.parse(await $$.promisify(batchDSU.readFile)(`batch.epi_v${epiProtocolVersion}`));
+        assert.true(dsuJson !== null);
+        compareMessage = modelMsgService.getMessageFromModel(dsuJson);
+        assert.true(compareMessage !== null);
 
-    Object.keys(compareMessage).forEach(key => {
-      if (!key.includes("snValid") && !key.includes("snRecalled") && !key.includes("snDecom")) {
-        if (typeof compareMessage[key] === "object") {
-          assert.equal(JSON.stringify(compareMessage[key]), JSON.stringify(testMessageObj.batch[key]));
-        } else {
-          assert.equal(compareMessage[key], testMessageObj.batch[key]);
-        }
-      }
-    })
-  }
-  messagesVerificationMap[batchWrongMsgType.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
-    undigestedMessageVerification(resultMessage, "UnknownTypeResponse", 5, constants.BATCHES_STORAGE_TABLE, gtinResolverUtils.getBatchMetadataPK(testMessageObj.batch.productCode, testMessageObj.batch.batch), enclaveDB);
-  }
-  messagesVerificationMap[batchWrongFieldType.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
-    undigestedMessageVerification(resultMessage, "BatchResponse", 1, constants.BATCHES_STORAGE_TABLE, gtinResolverUtils.getBatchMetadataPK(testMessageObj.batch.productCode, testMessageObj.batch.batch), enclaveDB);
-  }
-  messagesVerificationMap[batchMissingField.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
-    undigestedMessageVerification(resultMessage, "BatchResponse", 1, constants.BATCHES_STORAGE_TABLE, gtinResolverUtils.getBatchMetadataPK(testMessageObj.batch.productCode, testMessageObj.batch.batch), enclaveDB);
-  }
-  messagesVerificationMap[batchWrongProductCode.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
-    undigestedMessageVerification(resultMessage, "BatchResponse", 7, constants.BATCHES_STORAGE_TABLE, gtinResolverUtils.getBatchMetadataPK(testMessageObj.batch.productCode, testMessageObj.batch.batch), enclaveDB);
-  }
+        Object.keys(compareMessage).forEach(key => {
+            if (!key.includes("snValid") && !key.includes("snRecalled") && !key.includes("snDecom")) {
+                if (typeof compareMessage[key] === "object") {
+                    assert.equal(JSON.stringify(compareMessage[key]), JSON.stringify(testMessageObj.batch[key]));
+                } else {
+                    assert.equal(compareMessage[key], testMessageObj.batch[key]);
+                }
+            }
+        })
+    }
+    messagesVerificationMap[batchWrongMsgType.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
+        undigestedMessageVerification(resultMessage, "UnknownTypeResponse", 5, constants.BATCHES_STORAGE_TABLE, gtinResolverUtils.getBatchMetadataPK(testMessageObj.batch.productCode, testMessageObj.batch.batch), enclaveDB);
+    }
+    messagesVerificationMap[batchWrongFieldType.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
+        undigestedMessageVerification(resultMessage, "BatchResponse", 1, constants.BATCHES_STORAGE_TABLE, gtinResolverUtils.getBatchMetadataPK(testMessageObj.batch.productCode, testMessageObj.batch.batch), enclaveDB);
+    }
+    messagesVerificationMap[batchMissingField.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
+        undigestedMessageVerification(resultMessage, "BatchResponse", 1, constants.BATCHES_STORAGE_TABLE, gtinResolverUtils.getBatchMetadataPK(testMessageObj.batch.productCode, testMessageObj.batch.batch), enclaveDB);
+    }
+    messagesVerificationMap[batchWrongProductCode.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
+        undigestedMessageVerification(resultMessage, "BatchResponse", 7, constants.BATCHES_STORAGE_TABLE, gtinResolverUtils.getBatchMetadataPK(testMessageObj.batch.productCode, testMessageObj.batch.batch), enclaveDB);
+    }
 
-  let batchMessages = [batchGoodMsg, batchWrongMsgType, batchWrongFieldType, batchMissingField, batchWrongProductCode];
+    let batchMessages = [batchGoodMsg, batchWrongMsgType, batchWrongFieldType, batchMissingField, batchWrongProductCode];
 
-  /*create messages for productPhoto*/
+    /*create messages for productPhoto*/
 
-  let photoMsg = getMockMessage("ProductPhoto");
-  photoMsg["epiProtocolVersion"] = epiProtocolVersion;
-  let photoGoodMsg = utils.setEndpointMessages("endpoint", 1, photoMsg)[0];
-  photoGoodMsg.productCode = prodGoodMsg.product.productCode;
-  let photoWrongMsgType = utils.setEndpointMessages("endpoint", 1, photoMsg)[0];
-  photoWrongMsgType.messageType = "ProductPhoto Wrong message type";
-  let photoMissingField = utils.setEndpointMessages("endpoint", 1, photoMsg)[0];
-  delete photoMissingField.imageData;
-  let photoWrongProductCode = utils.setEndpointMessages("endpoint", 1, photoMsg)[0];
-  photoWrongProductCode.productCode = "Wrong value";
+    let photoMsg = getMockMessage("ProductPhoto");
+    photoMsg["epiProtocolVersion"] = epiProtocolVersion;
+    let photoGoodMsg = utils.setEndpointMessages("endpoint", 1, photoMsg)[0];
+    photoGoodMsg.productCode = prodGoodMsg.product.productCode;
+    let photoWrongMsgType = utils.setEndpointMessages("endpoint", 1, photoMsg)[0];
+    photoWrongMsgType.messageType = "ProductPhoto Wrong message type";
+    let photoMissingField = utils.setEndpointMessages("endpoint", 1, photoMsg)[0];
+    delete photoMissingField.imageData;
+    let photoWrongProductCode = utils.setEndpointMessages("endpoint", 1, photoMsg)[0];
+    photoWrongProductCode.productCode = "Wrong value";
 
-  messagesVerificationMap[photoGoodMsg.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
+    messagesVerificationMap[photoGoodMsg.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
 
-    let dbResult = null;
-    let dsuImgData = null;
-    let compareMessage = {};
-    assert.equal(resultMessage.response[0].responseType, 100);
-    assert.equal(resultMessage.messageType, "ProductPhotoResponse");
-    dbResult = await $$.promisify(enclaveDB.getRecord)(constants.PRODUCTS_TABLE, testMessageObj.productCode);
-    assert.true(dbResult !== null);
-    let productDSU = await $$.promisify(resolver.loadDSU)(dbResult.keySSI);
-    assert.true(productDSU !== null);
-    dsuImgData = gtinResolverUtils.arrayBufferToBase64(await $$.promisify(productDSU.readFile)("image.png"));
-    assert.true(dsuImgData !== null);
-    assert.equal(dsuImgData, testMessageObj.imageData);
+        let dbResult = null;
+        let dsuImgData = null;
+        let compareMessage = {};
+        assert.equal(resultMessage.response[0].responseType, 100);
+        assert.equal(resultMessage.messageType, "ProductPhotoResponse");
+        dbResult = await $$.promisify(enclaveDB.getRecord)(constants.PRODUCTS_TABLE, testMessageObj.productCode);
+        assert.true(dbResult !== null);
+        let productDSU = await $$.promisify(resolver.loadDSU)(dbResult.keySSI);
+        assert.true(productDSU !== null);
+        dsuImgData = gtinResolverUtils.arrayBufferToBase64(await $$.promisify(productDSU.readFile)("image.png"));
+        assert.true(dsuImgData !== null);
+        assert.equal(dsuImgData, testMessageObj.imageData);
 
-  }
-  messagesVerificationMap[photoWrongMsgType.messageId] = async function (resultMessage) {
-    assert.equal(resultMessage.response[0].responseType, 5);
-    assert.equal(resultMessage.messageType, "UnknownTypeResponse");
-  }
-  messagesVerificationMap[photoMissingField.messageId] = async function (resultMessage) {
-    assert.equal(resultMessage.response[0].responseType, 10);
-    assert.equal(resultMessage.messageType, "ProductPhotoResponse");
-  }
-  messagesVerificationMap[photoWrongProductCode.messageId] = async function (resultMessage) {
-    assert.equal(resultMessage.response[0].responseType, 10);
-    assert.equal(resultMessage.messageType, "ProductPhotoResponse");
-  }
+    }
+    messagesVerificationMap[photoWrongMsgType.messageId] = async function (resultMessage) {
+        assert.equal(resultMessage.response[0].responseType, 5);
+        assert.equal(resultMessage.messageType, "UnknownTypeResponse");
+    }
+    messagesVerificationMap[photoMissingField.messageId] = async function (resultMessage) {
+        assert.equal(resultMessage.response[0].responseType, 10);
+        assert.equal(resultMessage.messageType, "ProductPhotoResponse");
+    }
+    messagesVerificationMap[photoWrongProductCode.messageId] = async function (resultMessage) {
+        assert.equal(resultMessage.response[0].responseType, 10);
+        assert.equal(resultMessage.messageType, "ProductPhotoResponse");
+    }
 
-  let photoMessages = [photoGoodMsg, photoWrongMsgType, photoWrongProductCode, photoMissingField];
+    let photoMessages = [photoGoodMsg, photoWrongMsgType, photoWrongProductCode, photoMissingField];
 
-  /*create messages for VideoSource*/
+    /*create messages for VideoSource*/
 
-  let videoMsg = getMockMessage("VideoSource");
-  videoMsg["epiProtocolVersion"] = epiProtocolVersion;
-  let videoGoodMsg = utils.setEndpointMessages("endpoint", 1, videoMsg)[0];
-  videoGoodMsg.videos.productCode = prodGoodMsg.product.productCode;
-  let videoWrongMsgType = utils.setEndpointMessages("endpoint", 1, videoMsg)[0];
-  videoWrongMsgType.messageType = "VideoSource Wrong message type";
-  let videoMissingField = utils.setEndpointMessages("endpoint", 1, videoMsg)[0];
-  delete videoMissingField.videos.source;
-  delete videoMissingField.videos.sources;
-  let videoWrongProductCode = utils.setEndpointMessages("endpoint", 1, videoMsg)[0];
-  videoWrongProductCode.videos.productCode = "Wrong value";
+    let videoMsg = getMockMessage("VideoSource");
+    videoMsg["epiProtocolVersion"] = epiProtocolVersion;
+    let videoGoodMsg = utils.setEndpointMessages("endpoint", 1, videoMsg)[0];
+    videoGoodMsg.videos.productCode = prodGoodMsg.product.productCode;
+    let videoWrongMsgType = utils.setEndpointMessages("endpoint", 1, videoMsg)[0];
+    videoWrongMsgType.messageType = "VideoSource Wrong message type";
+    let videoMissingField = utils.setEndpointMessages("endpoint", 1, videoMsg)[0];
+    delete videoMissingField.videos.source;
+    delete videoMissingField.videos.sources;
+    let videoWrongProductCode = utils.setEndpointMessages("endpoint", 1, videoMsg)[0];
+    videoWrongProductCode.videos.productCode = "Wrong value";
 
-  messagesVerificationMap[videoGoodMsg.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
+    messagesVerificationMap[videoGoodMsg.messageId] = async function (resultMessage, testMessageObj, enclaveDB) {
 
-    let dbResult = null;
-    let dsuJson = null;
-    let compareMessage = {};
-    assert.equal(resultMessage.response[0].responseType, 100);
-    assert.equal(resultMessage.messageType, "VideoSourceResponse");
-    dbResult = await $$.promisify(enclaveDB.getRecord)(constants.PRODUCTS_TABLE, testMessageObj.videos.productCode);
-    assert.true(dbResult !== null);
-    assert.true(dbResult.videos !== null && dbResult.videos.defaultSource !== null);
-    assert.equal(dbResult.videos.defaultSource, testMessageObj.videos.source);
+        let dbResult = null;
+        let dsuJson = null;
+        let compareMessage = {};
+        assert.equal(resultMessage.response[0].responseType, 100);
+        assert.equal(resultMessage.messageType, "VideoSourceResponse");
+        dbResult = await $$.promisify(enclaveDB.getRecord)(constants.PRODUCTS_TABLE, testMessageObj.videos.productCode);
+        assert.true(dbResult !== null);
+        assert.true(dbResult.videos !== null && dbResult.videos.defaultSource !== null);
+        assert.equal(dbResult.videos.defaultSource, testMessageObj.videos.source);
 
-    let productDSU = await $$.promisify(resolver.loadDSU)(dbResult.keySSI);
-    assert.true(productDSU !== null);
-    // await $$.promisify(productDSU.load)();
-    dsuJson = JSON.parse(await $$.promisify(productDSU.readFile)(`product.epi_v${epiProtocolVersion}`));
-    assert.true(dsuJson !== null);
-    assert.true(dsuJson.videos !== null && dsuJson.videos.defaultSource !== null);
-    assert.equal(dsuJson.videos.defaultSource, testMessageObj.videos.source);
+        let productDSU = await $$.promisify(resolver.loadDSU)(dbResult.keySSI);
+        assert.true(productDSU !== null);
+        // await $$.promisify(productDSU.load)();
+        dsuJson = JSON.parse(await $$.promisify(productDSU.readFile)(`product.epi_v${epiProtocolVersion}`));
+        assert.true(dsuJson !== null);
+        assert.true(dsuJson.videos !== null && dsuJson.videos.defaultSource !== null);
+        assert.equal(dsuJson.videos.defaultSource, testMessageObj.videos.source);
 
-  }
-  messagesVerificationMap[videoWrongMsgType.messageId] = async function (resultMessage) {
-    assert.equal(resultMessage.response[0].responseType, 5);
-    assert.equal(resultMessage.messageType, "UnknownTypeResponse");
-  }
-  messagesVerificationMap[videoMissingField.messageId] = async function (resultMessage) {
-    assert.equal(resultMessage.response[0].responseType, 11);
-    assert.equal(resultMessage.messageType, "VideoSourceResponse");
-  }
-  messagesVerificationMap[videoWrongProductCode.messageId] = async function (resultMessage) {
-    assert.equal(resultMessage.response[0].responseType, 11);
-    assert.equal(resultMessage.messageType, "VideoSourceResponse");
-  }
+    }
+    messagesVerificationMap[videoWrongMsgType.messageId] = async function (resultMessage) {
+        assert.equal(resultMessage.response[0].responseType, 5);
+        assert.equal(resultMessage.messageType, "UnknownTypeResponse");
+    }
+    messagesVerificationMap[videoMissingField.messageId] = async function (resultMessage) {
+        assert.equal(resultMessage.response[0].responseType, 11);
+        assert.equal(resultMessage.messageType, "VideoSourceResponse");
+    }
+    messagesVerificationMap[videoWrongProductCode.messageId] = async function (resultMessage) {
+        assert.equal(resultMessage.response[0].responseType, 11);
+        assert.equal(resultMessage.messageType, "VideoSourceResponse");
+    }
 
-  let videoMessages = [videoGoodMsg, videoWrongMsgType, videoMissingField, videoWrongProductCode];
+    let videoMessages = [videoGoodMsg, videoWrongMsgType, videoMissingField, videoWrongProductCode];
 
-  return [].concat(productMessages, batchMessages, photoMessages, videoMessages);
+    return [].concat(productMessages, batchMessages, photoMessages, videoMessages);
 }
 

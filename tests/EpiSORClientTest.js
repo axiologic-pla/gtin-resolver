@@ -176,7 +176,10 @@ assert.callback("EPISORClient Test Suite", async (callback) => {
         secret: generateEncryptionKey()
     }
     await apiKeysClient.becomeSysAdmin(JSON.stringify(body), headers);
-    await apiKeysClient.associateAPIKey("DSU_Fabric", "name", "usr1@example.com", {secret: generateEncryptionKey(), scope:"write"}, headers);
+    await apiKeysClient.associateAPIKey("DSU_Fabric", "name", "usr1@example.com", {
+        secret: generateEncryptionKey(),
+        scope: "write"
+    }, headers);
 
     const secretsService = await require("apihub").getSecretsServiceInstanceAsync(folder);
     const LightDBEnclaveFactory = require("../../gtin-resolver/lib/integrationAPIs/utils/LightDBEnclaveFactory");

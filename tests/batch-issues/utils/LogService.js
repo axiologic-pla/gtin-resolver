@@ -93,7 +93,8 @@ class LogService {
 }
 
 class DummyLogService {
-    constructor(logsTable) {}
+    constructor(logsTable) {
+    }
 
     log(logDetails, callback) {
         callback();

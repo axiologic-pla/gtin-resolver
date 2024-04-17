@@ -1,22 +1,22 @@
 {
-    "name": "gtin-resolver",
-    "version": "v2.0.0",
-    "description": "",
-    "main": "index.js",
-    "scripts": {
-        "build": "node ./node_modules/octopus/scripts/run build devmode"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/pharmaledgerassoc/gtin-resolver.git"
-    },
-    "author": "",
-    "license": "MIT",
-    "bugs": {
-        "url": "https://github.com/pharmaledgerassoc/gtin-resolver/issues"
-    },
-    "homepage": "https://github.com/pharmaledgerassoc/gtin-resolver#readme",
-    "dependencies": {
-        "octopus": "git+http://github.com/opendsu/octopus.git"
-    }
+  "name": "gtin-resolver",
+  "version": "v2.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "node ./node_modules/octopus/scripts/run build devmode"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pharmaledgerassoc/gtin-resolver.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/pharmaledgerassoc/gtin-resolver/issues"
+  },
+  "homepage": "https://github.com/pharmaledgerassoc/gtin-resolver#readme",
+  "dependencies": {
+    "octopus": "git+http://github.com/opendsu/octopus.git"
+  }
 }
